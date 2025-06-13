@@ -55,7 +55,7 @@
     async function convertAll() {
       const files = document.getElementById('videoInput').files;
       const output = document.getElementById('output');
-      output.innerHTML = 'converting.. please wwauit';
+      output.innerHTML = '';
 
       const settings = {
         start: document.getElementById('startTime').value || 0,
@@ -64,9 +64,25 @@
         width: document.getElementById('width').value || 480,
       };
 
+      let counter = document.createElement('p');
+      counter.textContent = "Starting...";
+      output.appendChild(counter);
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        counter.textContent = `Converting ${i + 1} of ${files.length}...`;
+
+        // 🔢 Estimate time (very rough)
+        const estMs = estimateRenderTime(settings);
+        let elapsed = 0;
+        const interval = setInterval(() => {
+          elapsed += 1;
+          counter.textContent = `Converting ${i + 1} of ${files.length} — ${elapsed}s / ~${Math.ceil(estMs / 1000)}s`;
+        }, 1000);
+
         const gifURL = await convertToGif(file, settings);
+
+        clearInterval(interval);
 
         const link = document.createElement('a');
         link.href = gifURL;
@@ -75,6 +91,16 @@
         output.appendChild(link);
         output.appendChild(document.createElement('br'));
       }
+
+      counter.textContent = "✅ All conversions complete!";
+    }
+
+    function estimateRenderTime({ fps, duration, width }) {
+      // very rough: more fps × bigger size = more time
+      const baseCostPerFrame = 1.5; // ms per pixel width (fuzzy logic)
+      const frameCount = fps * duration;
+      const estMs = frameCount * baseCostPerFrame * width;
+      return estMs;
     }
   </script>
 </body>
